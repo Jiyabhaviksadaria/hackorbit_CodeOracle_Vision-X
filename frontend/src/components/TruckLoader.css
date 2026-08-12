@@ -1,0 +1,120 @@
+/* From Uiverse.io by vinodjangid07 - Adapted for CodeOracle Dark Theme */
+.loader {
+  width: fit-content;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.truckWrapper {
+  width: 220px;
+  height: 110px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  align-items: center;
+  justify-content: flex-end;
+  overflow-x: hidden;
+}
+
+/* truck upper body */
+.truckBody {
+  width: 130px;
+  height: fit-content;
+  margin-bottom: 6px;
+  animation: motion 1s linear infinite;
+}
+
+/* truck suspension animation */
+@keyframes motion {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+/* truck's tires */
+.truckTires {
+  width: 130px;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0px 10px 0px 15px;
+  position: absolute;
+  bottom: 0;
+}
+
+.truckTires svg {
+  width: 22px;
+}
+
+.animate-spin-fast {
+  animation: spinTires 0.4s linear infinite;
+}
+
+@keyframes spinTires {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.road {
+  width: 100%;
+  height: 2px;
+  background-color: #30363D;
+  position: relative;
+  bottom: 0;
+  align-self: flex-end;
+  border-radius: 3px;
+}
+
+.road::before {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 100%;
+  background-color: #30363D;
+  right: -50%;
+  border-radius: 3px;
+  animation: roadAnimation 1.4s linear infinite;
+  border-left: 10px solid #58A6FF;
+}
+
+.road::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 100%;
+  background-color: #30363D;
+  right: -65%;
+  border-radius: 3px;
+  animation: roadAnimation 1.4s linear infinite;
+  border-left: 4px solid #58A6FF;
+}
+
+.lampPost {
+  position: absolute;
+  bottom: 0;
+  right: -90%;
+  height: 90px;
+  animation: roadAnimation 1.4s linear infinite;
+}
+
+@keyframes roadAnimation {
+  0% {
+    transform: translateX(0px);
+  }
+  100% {
+    transform: translateX(-350px);
+  }
+}

@@ -1,0 +1,4 @@
+/* Custom styles for CodeOracle Vision-X App component */
+.glow-effect {
+  box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.25);
+}
