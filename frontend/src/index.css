@@ -1,0 +1,422 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-canvas: #0D1117;
+    --bg-surface: #161B22;
+    --bg-elevated: #1C2129;
+    --border-color: #30363D;
+    --accent-primary: #58A6FF;
+    --color-success: #3FB950;
+    --color-warning: #D29922;
+    --color-danger: #F85149;
+    --text-primary: #E6EDF3;
+    --text-secondary: #8B949E;
+    --text-disabled: #545D68;
+  }
+
+  /* Retro-Brutalist Neo-Pop Fun Mode (Inspired by Uiverse seoulchik design) */
+  .fun-mode {
+    --bg-canvas: #FFFBEB;
+    --bg-surface: #FFFFFF;
+    --bg-elevated: #FEF3C7;
+    --border-color: #000000;
+    --accent-primary: #ff3e00;
+    --color-success: #00e0b0;
+    --color-warning: #fdd835;
+    --color-danger: #ff3e00;
+    --text-primary: #050505;
+    --text-secondary: #262626;
+    --text-disabled: #6b7280;
+  }
+
+  body {
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+
+  /* Dot Grid Pattern background for body in Fun Mode */
+  body.fun-mode {
+    background-image: radial-gradient(#d1d5db 1px, transparent 1px);
+    background-size: 1.25em 1.25em;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  a:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 3px solid var(--accent-primary) !important;
+    outline-offset: 2px !important;
+  }
+}
+
+.border-hairline {
+  border: 1px solid var(--border-color);
+}
+
+.bg-canvas {
+  background-color: var(--bg-canvas);
+}
+
+.bg-surface {
+  background-color: var(--bg-surface);
+}
+
+.bg-elevated {
+  background-color: var(--bg-elevated);
+}
+
+.transition-fast {
+  transition: all 150ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* Custom Uiverse Toggle Button by barisdogansutcu */
+.fun-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  height: 34px;
+  color: #111827;
+  text-shadow: 1px 1px 0px #FFFCAB;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: solid 2.5px #000000;
+  letter-spacing: 1px;
+  font-weight: 800;
+  font-size: 12px;
+  background-color: hsl(49deg 98% 60%);
+  border-radius: 50px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  box-shadow: 2px 2px 0px #000000;
+  user-select: none;
+}
+
+.fun-toggle-btn:active {
+  transform: scale(0.92);
+  box-shadow: 0px 0px 0px #000000;
+  transition: all 100ms ease;
+}
+
+.fun-toggle-btn svg {
+  transition: all 0.4s ease;
+  z-index: 2;
+  shrink: 0;
+}
+
+.fun-toggle-btn .play {
+  transition: all 0.4s ease;
+  transition-delay: 200ms;
+  z-index: 2;
+  white-space: nowrap;
+}
+
+.fun-toggle-btn:hover svg {
+  transform: scale(2.2) translate(35%);
+}
+
+.fun-toggle-btn .now {
+  position: absolute;
+  left: 0;
+  transform: translateX(-100%);
+  transition: all 0.4s ease;
+  z-index: 2;
+  color: #E53935;
+  text-shadow: 1px 1px 0px #000000;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.fun-toggle-btn:hover .now {
+  transform: translateX(10px);
+  transition-delay: 200ms;
+}
+
+.fun-toggle-btn:hover .play {
+  transform: translateX(200%);
+  transition-delay: 200ms;
+}
+
+/* Neo-Brutalist Fun Mode Cards (seoulchik design language) */
+.fun-mode .neo-card {
+  position: relative;
+  background: #ffffff;
+  border: 3.5px solid #000000;
+  border-radius: 0.6em;
+  box-shadow: 6px 6px 0px #000000;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  overflow: hidden;
+}
+
+.fun-mode .neo-card:hover {
+  transform: translate(-3px, -3px) scale(1.01);
+  box-shadow: 9px 9px 0px #000000;
+}
+
+.fun-mode .neo-card::before {
+  content: "";
+  position: absolute;
+  top: -1em;
+  right: -1em;
+  width: 3.5em;
+  height: 3.5em;
+  background: #00e0b0;
+  border: 2px solid #000000;
+  transform: rotate(45deg);
+  z-index: 1;
+}
+
+.fun-mode .neo-card::after {
+  content: "★";
+  position: absolute;
+  top: 0.3em;
+  right: 0.4em;
+  color: #000000;
+  font-size: 1.1em;
+  font-weight: 900;
+  z-index: 2;
+}
+
+.fun-mode .neo-title-banner {
+  position: relative;
+  padding: 0.8em 1.2em;
+  background: #ff3e00;
+  color: #ffffff;
+  font-weight: 800;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 3.5px solid #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  z-index: 2;
+}
+
+.fun-mode .neo-title-banner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.12),
+    rgba(0, 0, 0, 0.12) 0.5em,
+    transparent 0.5em,
+    transparent 1em
+  );
+  pointer-events: none;
+}
+
+.fun-mode .neo-tag {
+  background: #ffffff;
+  color: #000000;
+  font-size: 0.7em;
+  font-weight: 800;
+  padding: 0.3em 0.7em;
+  border: 2px solid #000000;
+  border-radius: 0.3em;
+  box-shadow: 2px 2px 0px #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transform: rotate(3deg);
+  transition: all 0.2s ease;
+}
+
+.fun-mode .neo-card:hover .neo-tag {
+  transform: rotate(-2deg) scale(1.05);
+  box-shadow: 3px 3px 0px #000000;
+}
+
+.fun-mode .neo-btn {
+  position: relative;
+  background: #4d61ff;
+  color: #ffffff;
+  font-size: 0.85em;
+  font-weight: 800;
+  padding: 0.6em 1.2em;
+  border: 2.5px solid #000000;
+  border-radius: 0.4em;
+  box-shadow: 3px 3px 0px #000000;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+
+.fun-mode .neo-btn:hover {
+  background: #5e70ff;
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0px #000000;
+}
+
+.fun-mode .neo-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #000000;
+}
+
+.fun-mode .neo-code-block {
+  background: #fef3c7;
+  border: 2.5px solid #000000;
+  border-radius: 6px;
+  box-shadow: 3px 3px 0px #000000;
+  color: #050505;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-canvas);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* ============================
+   Landing Hero — Glass Cards
+   (Uiverse.io by codebykay101)
+   ============================ */
+.glass-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.glass-card {
+  position: relative;
+  width: 180px;
+  height: 200px;
+  background: linear-gradient(rgba(255,255,255,0.12), transparent);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 25px rgba(0, 0, 0, 0.25);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  border-radius: 10px;
+  margin: 0 -45px;
+  backdrop-filter: blur(10px);
+  transform: rotate(calc(var(--r) * 1deg));
+}
+
+.glass-container:hover .glass-card {
+  transform: rotate(0deg);
+  margin: 0 10px;
+}
+
+.glass-card::before {
+  content: attr(data-text);
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  border-radius: 0 0 10px 10px;
+}
+
+.glass-card svg {
+  font-size: 2.5em;
+  fill: #fff;
+}
+
+/* Fun mode overrides for glass cards */
+body.fun-mode .glass-card {
+  background: linear-gradient(rgba(253,216,53,0.25), rgba(229,57,53,0.08));
+  border: 2.5px solid #000;
+  box-shadow: 5px 5px 0px #000;
+}
+
+body.fun-mode .glass-card::before {
+  color: #000;
+  background: rgba(253,216,53,0.2);
+  font-weight: 900;
+}
+
+body.fun-mode .glass-card svg {
+  fill: #212121;
+}
+
+/* Landing CTA hover */
+.landing-cta:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 32px rgba(88,166,255,0.35);
+}
+
+body.fun-mode .landing-cta:hover {
+  transform: translate(-3px, -3px) scale(1.03);
+  box-shadow: 8px 8px 0px #000 !important;
+  background: #E53935 !important;
+  color: #fff !important;
+}
+
+.landing-cta:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Landing title shimmer */
+.landing-title {
+  animation: titleFadeIn 1s ease-out;
+}
+
+@keyframes titleFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive: smaller glass cards on mobile */
+@media (max-width: 640px) {
+  .glass-card {
+    width: 120px;
+    height: 140px;
+    margin: 0 -30px;
+  }
+  .glass-container:hover .glass-card {
+    margin: 0 6px;
+  }
+  .glass-card svg {
+    font-size: 1.8em;
+  }
+  .glass-card::before {
+    height: 30px;
+    font-size: 11px;
+  }
+  .landing-title {
+    font-size: 36px !important;
+  }
+}
