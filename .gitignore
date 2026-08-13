@@ -1,0 +1,98 @@
+# ============================================
+# LOCAL DOCUMENTATION - NEVER COMMIT
+# ============================================
+.local_docs/
+doc/
+
+# Local documentation files outside doc/
+improve.md
+BACKEND_COMPLETE.md
+BACKEND_FINISHED.md
+WHAT_NEXT.md
+AUDIT_REPORT.md
+FINAL_AUDIT_SUMMARY.md
+IMPROVEMENTS_MADE.md
+QUICKSTART.md
+prompt.md
+
+# ============================================
+# TEMPORARY FILES (NEVER COMMIT)
+# ============================================
+improve.md
+BACKEND_COMPLETE.md
+BACKEND_FINISHED.md
+WHAT_NEXT.md
+
+# ============================================
+# OLD DOC FOLDER (MIGRATED TO .local_docs)
+# ============================================
+doc/
+
+# ============================================
+# Python
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# ============================================
+# Environment
+# ============================================
+.env
+.env.local
+
+# ============================================
+# IDE
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+
+# ============================================
+# Uploads and Workspaces
+# ============================================
+uploads/
+workspaces/
+*.zip
+
+# ============================================
+# Testing
+# ============================================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+coverage.json
+.nyc_output/
+
+# ============================================
+# Logs
+# ============================================
+*.log
+logs/
+
+# ============================================
+# OS
+# ============================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================
+# Node (for future frontend)
+# ============================================
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
