@@ -10,6 +10,7 @@ from .adapters.test_runner_adapter import run_tests_and_measure_coverage
 
 logger = logging.getLogger("codeoracle.refactor")
 
+
 # --- Python AST Signature Extractor ---
 def get_python_signatures(source: str) -> dict:
     try:
@@ -190,9 +191,12 @@ def generate_refactored_code(chunks: list, repo_dir: str = None) -> dict:
     if not chunks:
         return refactor_result
 
+    # Normalize chunks if they are Pydantic ParsedChunk objects
+    normalized_chunks = [c.model_dump() if hasattr(c, "model_dump") else c for c in chunks]
+
     # Group chunks by file
     files_data = {}
-    for chunk in chunks:
+    for chunk in normalized_chunks:
         file_path = chunk["file"]
         if file_path not in files_data:
             files_data[file_path] = {
@@ -277,7 +281,6 @@ def generate_refactored_code(chunks: list, repo_dir: str = None) -> dict:
                 parser = get_parser("javascript")
                 tree = parser.parse(bytes(refactored_source, "utf8"))
                 if tree.root_node.has_error:
-                    # Let's count it as warning or syntax issue
                     logger.warning("Tree-sitter detected error nodes in refactored JS")
             except Exception:
                 syntax_valid = False
@@ -298,7 +301,7 @@ def generate_refactored_code(chunks: list, repo_dir: str = None) -> dict:
 
             # 4. Gemini Semantic Analysis of Breaking Changes
             if breaking_changes:
-                risk_level = "HIGH"  # Structurally broken signatures
+                risk_level = "HIGH"
                 try:
                     semantic_prompt = (
                         f"Review the following structural changes detected between original and refactored code.\n"
@@ -322,14 +325,11 @@ def generate_refactored_code(chunks: list, repo_dir: str = None) -> dict:
 
             # 5. Isolated Behavior Validation (running tests on refactored code)
             if repo_dir and syntax_valid:
-                # Create an isolated temporary workspace for validation
                 with tempfile.TemporaryDirectory() as temp_val_dir:
                     isolated_repo_dir = os.path.join(temp_val_dir, "repo")
                     os.makedirs(isolated_repo_dir)
                     
                     try:
-                        # Copy original workspace files
-                        # We copy tree recursively, skipping nodes if they are temp files or dirs
                         for item in os.listdir(repo_dir):
                             s = os.path.join(repo_dir, item)
                             d = os.path.join(isolated_repo_dir, item)
@@ -340,16 +340,11 @@ def generate_refactored_code(chunks: list, repo_dir: str = None) -> dict:
                                 if not item.endswith((".zip", ".db")):
                                     shutil.copy2(s, d)
                         
-                        # Replace target original file with refactored code in the isolated workspace
                         target_val_file = os.path.join(isolated_repo_dir, file_path)
                         os.makedirs(os.path.dirname(target_val_file), exist_ok=True)
                         with open(target_val_file, "w", encoding="utf-8") as f:
                             f.write(refactored_source)
 
-                        # Write dummy generated test file (if it doesn't already exist or if we want to run tests)
-                        # We search for any test files in repo_dir and copy them too
-                        # Let's run a test execution in the isolated workspace
-                        # We retrieve existing test names in repo_dir
                         test_files_payload = []
                         for root, _, files in os.walk(repo_dir):
                             for f in files:
@@ -364,7 +359,6 @@ def generate_refactored_code(chunks: list, repo_dir: str = None) -> dict:
                             run_log = run_res.get("log", "")
                             
                             if failed_count > 0:
-                                # Validation failed because tests broke!
                                 risk_level = "HIGH"
                                 breaking_changes.append(f"Behavior Validation Failed: Refactored code broke existing unit tests. Failed test logs:\n{run_log}")
                     except Exception as val_err:
@@ -384,3 +378,11 @@ def generate_refactored_code(chunks: list, repo_dir: str = None) -> dict:
         })
 
     return refactor_result
+
+
+def generate_refactor(chunks: list, repo_dir: str = None) -> dict:
+    """
+    API Entrypoint: Generates modern refactorings with AST breaking-change safety checks.
+    Conforms to CONTRACT.md §3 RefactorResult schema.
+    """
+    return generate_refactored_code(chunks, repo_dir=repo_dir)

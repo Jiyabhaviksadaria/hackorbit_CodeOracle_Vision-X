@@ -1,0 +1,84 @@
+version: "3.9"
+
+# ============================================================
+# CodeOracle — Docker Compose
+# Owned by: API/Integration Engineer
+#
+# Services:
+#   backend  — FastAPI on :8000
+#   frontend — Vite dev server on :5173  (or nginx for prod)
+#   redis    — optional job queue (Celery future-proofing)
+#
+# Usage:
+#   Development:  docker-compose up --build
+#   Env vars:     copy env → backend/.env  (never commit .env)
+# ============================================================
+
+services:
+
+  # ----------------------------------------------------------
+  # Backend — FastAPI
+  # ----------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: codeoracle-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env          # AI keys, limits — never hardcode
+    environment:
+      # Override specific vars for Docker networking
+      TEMP_WORKSPACE_ROOT: /app/workspaces
+      HOST: 0.0.0.0
+      PORT: "8000"
+      RELOAD: "false"           # disable hot-reload in container
+    volumes:
+      - workspaces:/app/workspaces   # persisted across restarts
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ----------------------------------------------------------
+  # Frontend — Vite (dev) / nginx (prod swap-in)
+  # ----------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: codeoracle-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      # Use Docker service name — NOT localhost (that resolves to the container itself)
+      VITE_API_BASE_URL: http://backend:8000
+    depends_on:
+      - backend
+
+  # ----------------------------------------------------------
+  # Redis — job queue backing store (Celery-ready)
+  # Not used in BackgroundTasks mode, but zero cost to include.
+  # ----------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: codeoracle-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --save "" --appendonly no   # no disk persistence in dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  workspaces:   # shared workspace storage between container restarts

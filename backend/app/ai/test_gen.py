@@ -10,6 +10,7 @@ MIN_COVERAGE = 60.0
 TARGET_COVERAGE = 70.0
 MAX_ITERATIONS = 2
 
+
 def generate_unit_tests(chunks: list, repo_dir: str = None) -> dict:
     """
     Generates unit test suites for source files.
@@ -31,9 +32,12 @@ def generate_unit_tests(chunks: list, repo_dir: str = None) -> dict:
         test_result["log"] = "No code chunks to analyze."
         return test_result
 
+    # Normalize chunks if they are Pydantic ParsedChunk objects
+    normalized_chunks = [c.model_dump() if hasattr(c, "model_dump") else c for c in chunks]
+
     # 1. Group chunks by file
     files_data = {}
-    for chunk in chunks:
+    for chunk in normalized_chunks:
         file_path = chunk["file"]
         if file_path not in files_data:
             files_data[file_path] = {
@@ -50,39 +54,36 @@ def generate_unit_tests(chunks: list, repo_dir: str = None) -> dict:
         elif chunk["type"] == "function":
             files_data[file_path]["functions"].append(chunk)
 
-    aggregated_logs = []
     total_passed = 0
     total_failed = 0
     coverage_sum = 0.0
     files_tested_count = 0
+    aggregated_logs = []
 
     for file_path, data in files_data.items():
         language = data["language"]
+        file_chunks = data["functions"] + data["classes"]
         module_chunk = data["module"]
-        if module_chunk:
-            if "error" in module_chunk:
-                continue
-            original_source = module_chunk["source"]
-        else:
-            fn_sources = [f["source"] for f in data.get("functions", [])]
-            cls_sources = [c["source"] for c in data.get("classes", [])]
-            original_source = "\n\n".join(fn_sources + cls_sources)
 
-        if not original_source.strip():
+        if not file_chunks and not module_chunk:
             continue
 
-        file_dir, file_name = os.path.split(file_path)
-        base_name, _ = os.path.splitext(file_name)
-
+        # Determine language config
         if language == "python":
-            test_file_name = f"test_{base_name}.py"
             framework = "pytest"
+            base_name = os.path.basename(file_path).replace(".py", "")
+            test_file_name = f"test_{base_name}.py"
         else:
-            test_file_name = f"{base_name}.test.js"
             framework = "jest"
+            base_name = os.path.basename(file_path).rsplit(".", 1)[0]
+            test_file_name = f"{base_name}.test.js"
 
-        # Truncate module source for API safety limits
-        source_lines = original_source.splitlines()
+        # Build comprehensive source context
+        if module_chunk:
+            source_lines = module_chunk["source"].splitlines()
+        else:
+            source_lines = ("\n\n".join(c["source"] for c in file_chunks)).splitlines()
+
         source_snippet = "\n".join(source_lines[:400])
         if len(source_lines) > 400:
             source_snippet += "\n... [TRUNCATED] ..."
@@ -224,3 +225,10 @@ def generate_unit_tests(chunks: list, repo_dir: str = None) -> dict:
     test_result["log"] = "\n".join(aggregated_logs)
 
     return test_result
+
+
+def generate_tests(chunks: list, repo_dir: str = None) -> dict:
+    """
+    API Entrypoint: Generates unit test suites matching CONTRACT.md §3 TestResult schema.
+    """
+    return generate_unit_tests(chunks, repo_dir=repo_dir)

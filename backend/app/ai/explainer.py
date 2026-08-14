@@ -5,6 +5,7 @@ from .gemini_client import call_gemini
 
 logger = logging.getLogger("codeoracle.explainer")
 
+
 def generate_explanations(chunks: list) -> dict:
     """
     Generates high-level repository, module, class, and function-level explanations.
@@ -18,9 +19,12 @@ def generate_explanations(chunks: list) -> dict:
     if not chunks:
         return explanation_result
 
+    # Normalize chunks if they are Pydantic ParsedChunk objects
+    normalized_chunks = [c.model_dump() if hasattr(c, "model_dump") else c for c in chunks]
+
     # 1. Group chunks by file
     files_data = {}
-    for chunk in chunks:
+    for chunk in normalized_chunks:
         file_path = chunk["file"]
         if file_path not in files_data:
             files_data[file_path] = {
@@ -224,3 +228,11 @@ def generate_explanations(chunks: list) -> dict:
                     })
 
     return explanation_result
+
+
+def generate_explanation(chunks: list) -> dict:
+    """
+    API Entrypoint: Generates natural language explanations for all parsed chunks.
+    Conforms to CONTRACT.md §3 Explanation schema.
+    """
+    return generate_explanations(chunks)
