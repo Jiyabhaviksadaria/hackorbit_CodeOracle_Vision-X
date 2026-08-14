@@ -25,8 +25,9 @@ class JavaScriptParser:
                 "Install: pip install tree-sitter tree-sitter-javascript"
             )
         
-        self.language = Language(tsjs.language())
-        self.parser = Parser(self.language)
+        self.language = Language(tsjs.language(), "javascript")
+        self.parser = Parser()
+        self.parser.set_language(self.language)
     
     def parse_file(self, file_path: Path) -> tuple[
         Optional[ModuleInfo],
