@@ -132,4 +132,4 @@ export class CodeOracleAPI {
   }
 }
 
-export const apiService = new CodeOracleAPI();
+export const apiService = new CodeOracleAPI(import.meta.env.VITE_API_URL || '');

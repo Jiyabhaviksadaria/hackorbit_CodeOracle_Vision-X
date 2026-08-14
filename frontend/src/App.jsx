@@ -8,7 +8,7 @@ import './App.css';
 
 export default function App() {
   const [showLanding, setShowLanding] = useState(true);
-  const [isMock, setIsMock] = useState(true);
+  const [isMock, setIsMock] = useState(false);
   const [themeMode, setThemeMode] = useState('tech'); // 'tech' (dark) | 'fun' (red/yellow/black bold)
   const [baseUrl, setBaseUrl] = useState('');
   const [jobId, setJobId] = useState(null);
