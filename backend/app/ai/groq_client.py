@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 # ── Config from env ──────────────────────────────────────────────────
 _API_KEY = os.getenv("GROQ_API_KEY")
-_MODEL   = os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile")
+_MODEL   = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
 # Max tokens per request — keeps context bounded per RULES.md
 _MAX_TOKENS = int(os.getenv("GROQ_MAX_TOKENS", "4096"))
@@ -69,7 +69,7 @@ def chat(
         RuntimeError: If all retries fail or key is missing.
     """
     client     = get_client()
-    use_model  = model or os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile")
+    use_model  = model or os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
     use_tokens = max_tokens or int(os.getenv("GROQ_MAX_TOKENS", "4096"))
 
     last_error: Optional[Exception] = None

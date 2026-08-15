@@ -15,7 +15,8 @@ from backend.app.ai.refactor import (
     compare_signatures
 )
 
-# Set API key for testing so it doesn't fail configure checks
+# Set API key and provider for testing so it doesn't fail configure checks
+os.environ["AI_PROVIDER"] = "gemini"
 os.environ["GEMINI_API_KEY"] = "mock_api_key_for_testing"
 gemini_client._configured = True
 
@@ -79,7 +80,7 @@ def test_gemini_client_exhaustion(mock_model_class):
     mock_model.generate_content.side_effect = ResourceExhausted("Rate limit exceeded")
     mock_model_class.return_value = mock_model
 
-    with patch("time.sleep") as mock_sleep, pytest.raises(Exception) as exc_info:
+    with patch("time.sleep") as mock_sleep, patch.dict("os.environ", {"GROQ_API_KEY": ""}), pytest.raises(Exception) as exc_info:
         call_gemini("Test failing prompt")
         
     assert "Gemini API call failed" in str(exc_info.value)
