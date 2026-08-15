@@ -12,6 +12,7 @@ export function ProgressRail({ jobId, status, progress, error, themeMode }) {
   const currentStageIndex = STAGES.findIndex((s) => s.id === status);
   const isDone = status === 'done';
   const isError = status === 'error';
+  const isExpired = status === 'expired';
   const isFun = themeMode === 'fun';
 
   return (
@@ -39,6 +40,12 @@ export function ProgressRail({ jobId, status, progress, error, themeMode }) {
             <span className="flex items-center gap-1 text-xs font-bold text-white bg-[#E53935] px-2 py-0.5 rounded-full border-2 border-[#212121] shadow-[2px_2px_0px_#212121]">
               <AlertCircle className="w-3.5 h-3.5" />
               Pipeline Error
+            </span>
+          )}
+          {isExpired && (
+            <span className="flex items-center gap-1 text-xs font-bold text-white bg-[#D97706] px-2 py-0.5 rounded-full border-2 border-[#212121] shadow-[2px_2px_0px_#212121]">
+              <AlertCircle className="w-3.5 h-3.5" />
+              Session Expired
             </span>
           )}
         </div>

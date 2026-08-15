@@ -395,7 +395,10 @@ async def get_job_status(job_id: str) -> JobStatus:
     job = job_manager.get_job(job_id)
     
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found or expired. Please start a new analysis."
+        )
     
     # Return LOCKED contract status
     return JobStatus(
@@ -416,7 +419,10 @@ async def get_job_result(job_id: str):
     job = job_manager.get_job(job_id)
 
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found or expired. Please start a new analysis."
+        )
 
     if job.status != "done":
         raise HTTPException(
@@ -436,7 +442,10 @@ async def get_job_analysis(job_id: str):
     job = job_manager.get_job(job_id)
     
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found or expired. Please start a new analysis."
+        )
     
     return {
         "job_id": job.job_id,
@@ -464,7 +473,10 @@ async def get_job_chunks(job_id: str) -> List[ParsedChunk]:
     job = job_manager.get_job(job_id)
     
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found or expired. Please start a new analysis."
+        )
     
     if job.status not in ("done", "explaining", "testing", "refactoring"):
         raise HTTPException(

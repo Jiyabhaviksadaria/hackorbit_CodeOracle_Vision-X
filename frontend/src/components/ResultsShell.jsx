@@ -54,7 +54,34 @@ export function ResultsShell({ jobId, status, progress, error, resultData, onRes
 
       {/* Main View Area */}
       <div className="flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {!isDone ? (
+        {status === 'expired' ? (
+          <div className={`rounded-[6px] p-8 shadow-xl border-2 text-center max-w-lg mx-auto space-y-4 my-8 ${
+            isFun ? 'bg-[#FFFFFF] border-[#212121] shadow-[4px_4px_0px_#E53935]' : 'bg-[#161B22] border-[#30363D]'
+          }`}>
+            <div className={`w-12 h-12 rounded-[6px] flex items-center justify-center mx-auto border-2 ${
+              isFun ? 'bg-[#FEF3C7] text-[#E53935] border-[#212121]' : 'bg-[#D29922]/10 border-[#D29922]/30 text-[#D29922]'
+            }`}>
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className={`text-base font-bold ${isFun ? 'text-[#212121]' : 'text-[#E6EDF3]'}`}>
+              Analysis Session Expired
+            </h3>
+            <p className={`text-xs leading-relaxed ${isFun ? 'text-[#374151]' : 'text-[#8B949E]'}`}>
+              {error || 'Your previous analysis session has expired or is no longer available on the server. Please start a new analysis.'}
+            </p>
+            <button
+              onClick={onReset}
+              className={`flex items-center gap-1.5 mx-auto px-4 py-2 text-xs font-bold rounded-[4px] border-2 transition-fast cursor-pointer ${
+                isFun
+                  ? 'bg-[#E53935] text-white border-[#212121] shadow-[2px_2px_0px_#212121]'
+                  : 'bg-[#58A6FF] text-[#0D1117] border-transparent hover:bg-[#58A6FF]/80 font-mono'
+              }`}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Analyze Another Repository</span>
+            </button>
+          </div>
+        ) : !isDone ? (
           <div className="space-y-6">
             <div className={`rounded-[6px] p-6 shadow-xl border-2 ${
               isFun ? 'bg-[#FFFFFF] border-[#212121] shadow-[4px_4px_0px_#E53935]' : 'bg-[#161B22] border-[#30363D]'

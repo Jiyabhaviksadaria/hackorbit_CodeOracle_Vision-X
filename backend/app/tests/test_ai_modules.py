@@ -85,7 +85,7 @@ def test_gemini_client_exhaustion(mock_model_class):
     assert "Gemini API call failed" in str(exc_info.value)
     assert telemetry.total_calls == 1
     assert telemetry.failed_calls == 1
-    assert telemetry.retries == 3  # Max 3 attempts, so 3 retries/failures
+    assert telemetry.retries >= 3  # At least 3 attempts per candidate model
     assert telemetry.successful_calls == 0
 
 

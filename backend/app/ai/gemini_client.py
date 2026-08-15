@@ -54,6 +54,21 @@ def configure_client():
 # Initial attempt
 configure_client()
 
+def _call_groq_fallback(prompt: str, system_instruction: str = None, json_mode: bool = False) -> str:
+    """
+    Route the request through the Groq client.
+    Adapts the call_gemini interface to groq_client.chat().
+    """
+    from .groq_client import chat as groq_chat
+
+    sys_prompt = system_instruction or "You are a helpful coding assistant."
+    if json_mode:
+        sys_prompt += "\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown, no explanation, just JSON."
+
+    logger.info("Routing AI request through Groq provider")
+    return groq_chat(system_prompt=sys_prompt, user_prompt=prompt)
+
+
 def call_gemini(
     prompt: str, 
     system_instruction: str = None, 
@@ -62,16 +77,50 @@ def call_gemini(
     timeout: float = 60.0
 ) -> str:
     """
-    Executes a prompt via the Gemini API.
+    Executes a prompt via the configured AI provider.
+    Routes to Groq when AI_PROVIDER=groq, otherwise uses Gemini with fallback to Groq.
     Handles rate-limiting (ResourceExhausted), timeout configurations, and retries.
     Collects performance telemetry safely.
     """
+    # ── Check if Groq is the primary provider ──
+    ai_provider = os.environ.get("AI_PROVIDER", "gemini").strip().lower()
+    groq_key = os.environ.get("GROQ_API_KEY", "").strip()
+
+    if ai_provider == "groq" and groq_key:
+        telemetry.total_calls += 1
+        start_time = time.time()
+        try:
+            result = _call_groq_fallback(prompt, system_instruction, json_mode)
+            telemetry.successful_calls += 1
+            telemetry.total_processing_time += (time.time() - start_time)
+            return result
+        except Exception as e:
+            telemetry.failed_calls += 1
+            telemetry.total_processing_time += (time.time() - start_time)
+            logger.error(f"Groq provider failed: {e}")
+            raise Exception(f"Groq AI call failed: {e}")
+
+    # ── Gemini path (original) ──
     global _configured
     if not _configured:
         configure_client()
         
     api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if not api_key:
+        # No Gemini key — try Groq as last resort
+        if groq_key:
+            logger.warning("No Gemini API key found, falling back to Groq")
+            telemetry.total_calls += 1
+            start_time = time.time()
+            try:
+                result = _call_groq_fallback(prompt, system_instruction, json_mode)
+                telemetry.successful_calls += 1
+                telemetry.total_processing_time += (time.time() - start_time)
+                return result
+            except Exception as e:
+                telemetry.failed_calls += 1
+                telemetry.total_processing_time += (time.time() - start_time)
+                raise Exception(f"Groq fallback failed: {e}")
         raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY environment variable is missing.")
 
     generation_config = {}
@@ -136,7 +185,19 @@ def call_gemini(
                 logger.warning(f"Unexpected error: {str(e)}. Retrying in {delay}s...")
                 time.sleep(delay)
 
+    # ── All Gemini models failed — try Groq as last resort ──
+    if groq_key:
+        logger.warning("All Gemini models failed. Falling back to Groq provider...")
+        try:
+            result = _call_groq_fallback(prompt, system_instruction, json_mode)
+            telemetry.successful_calls += 1
+            telemetry.total_processing_time += (time.time() - start_time)
+            return result
+        except Exception as groq_err:
+            logger.error(f"Groq fallback also failed: {groq_err}")
+
     telemetry.failed_calls += 1
     telemetry.total_processing_time += (time.time() - start_time)
     logger.error(f"Gemini API error occurred on final attempt: {str(last_error)}")
     raise Exception(f"Gemini API call failed: {str(last_error)}")
+

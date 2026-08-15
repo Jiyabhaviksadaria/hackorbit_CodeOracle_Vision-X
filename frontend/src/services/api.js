@@ -78,7 +78,7 @@ export class CodeOracleAPI {
    * Contract: GET /api/jobs/{id}/status
    * Returns: { status: "queued"|"parsing"|"explaining"|"testing"|"refactoring"|"done"|"error", progress: 0-100, error?: string }
    */
-  async getJobStatus(jobId, mockStepIndex = 0) {
+  async getJobStatus(jobId, mockStepIndex = 0, signal = null) {
     if (this.useMock) {
       // Mock progress simulation sequence
       const steps = [
@@ -95,12 +95,40 @@ export class CodeOracleAPI {
     }
 
     const endpoint = `${this.baseUrl}/api/jobs/${encodeURIComponent(jobId)}/status`;
-    const response = await fetch(endpoint, {
-      headers: { 'Accept': 'application/json' }
-    });
+    let response;
+    try {
+      response = await fetch(endpoint, {
+        headers: { 'Accept': 'application/json' },
+        signal: signal || undefined
+      });
+    } catch (networkErr) {
+      if (networkErr.name === 'AbortError' || (signal && signal.aborted)) {
+        const abortErr = new Error('Request aborted');
+        abortErr.isAborted = true;
+        throw abortErr;
+      }
+      const err = new Error('Unable to connect to the CodeOracle backend.');
+      err.isNetworkError = true;
+      throw err;
+    }
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch status (HTTP ${response.status})`);
+      let detailMsg = null;
+      try {
+        const errorJson = await response.json();
+        detailMsg = errorJson.detail || errorJson.error;
+      } catch (e) {}
+
+      const msg = detailMsg || (response.status === 404
+        ? 'Your previous analysis session has expired or is no longer available on the server. Please start a new analysis.'
+        : `Failed to fetch status (HTTP ${response.status})`);
+
+      const err = new Error(msg);
+      err.status = response.status;
+      if (response.status === 404) {
+        err.isExpired = true;
+      }
+      throw err;
     }
 
     const data = await response.json();
@@ -112,19 +140,47 @@ export class CodeOracleAPI {
    * Contract: GET /api/jobs/{id}/result
    * Returns: { explanation, dependency_graph, tests, refactor }
    */
-  async getJobResult(jobId) {
+  async getJobResult(jobId, signal = null) {
     if (this.useMock) {
       await new Promise((resolve) => setTimeout(resolve, 400));
       return MOCK_JOB_RESULT;
     }
 
     const endpoint = `${this.baseUrl}/api/jobs/${encodeURIComponent(jobId)}/result`;
-    const response = await fetch(endpoint, {
-      headers: { 'Accept': 'application/json' }
-    });
+    let response;
+    try {
+      response = await fetch(endpoint, {
+        headers: { 'Accept': 'application/json' },
+        signal: signal || undefined
+      });
+    } catch (networkErr) {
+      if (networkErr.name === 'AbortError' || (signal && signal.aborted)) {
+        const abortErr = new Error('Request aborted');
+        abortErr.isAborted = true;
+        throw abortErr;
+      }
+      const err = new Error('Unable to connect to the CodeOracle backend.');
+      err.isNetworkError = true;
+      throw err;
+    }
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch job results (HTTP ${response.status})`);
+      let detailMsg = null;
+      try {
+        const errorJson = await response.json();
+        detailMsg = errorJson.detail || errorJson.error;
+      } catch (e) {}
+
+      const msg = detailMsg || (response.status === 404
+        ? 'Your previous analysis session has expired or is no longer available on the server. Please start a new analysis.'
+        : `Failed to fetch job results (HTTP ${response.status})`);
+
+      const err = new Error(msg);
+      err.status = response.status;
+      if (response.status === 404) {
+        err.isExpired = true;
+      }
+      throw err;
     }
 
     const data = await response.json();
