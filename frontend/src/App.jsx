@@ -3,14 +3,14 @@ import { Header } from './components/Header';
 import { LandingHero } from './components/LandingHero';
 import { UploadSection } from './components/UploadSection';
 import { ResultsShell } from './components/ResultsShell';
-import { apiService } from './services/api';
+import { apiService, DEFAULT_API_BASE_URL } from './services/api';
 import './App.css';
 
 export default function App() {
   const [showLanding, setShowLanding] = useState(true);
   const [isMock, setIsMock] = useState(false);
   const [themeMode, setThemeMode] = useState('tech'); // 'tech' (dark) | 'fun' (red/yellow/black bold)
-  const [baseUrl, setBaseUrl] = useState('');
+  const [baseUrl, setBaseUrl] = useState(DEFAULT_API_BASE_URL);
   const [jobId, setJobId] = useState(null);
   const [status, setStatus] = useState(null);
   const [progress, setProgress] = useState(0);

@@ -3,9 +3,17 @@ import { MOCK_JOB_RESULT } from './mockData';
 // API Client managing standard REST communication with the CodeOracle Vision-X backend.
 // Enforces strict adherence to backend contract.
 
+// Default API Base URL:
+// In Local Dev (import.meta.env.DEV): http://localhost:8000
+// In Production: https://hackorbit-codeoracle-vision-x.onrender.com (or VITE_API_URL if configured)
+export const DEFAULT_API_BASE_URL = 
+  (import.meta.env.VITE_API_URL || '').trim() || 
+  (import.meta.env.DEV ? 'http://localhost:8000' : 'https://hackorbit-codeoracle-vision-x.onrender.com');
+
 export class CodeOracleAPI {
-  constructor(baseUrl = '') {
-    this.baseUrl = baseUrl.replace(/\/+$/, '');
+  constructor(baseUrl = DEFAULT_API_BASE_URL) {
+    const raw = (baseUrl || DEFAULT_API_BASE_URL).trim();
+    this.baseUrl = raw.replace(/\/+$/, '');
     this.useMock = false;
   }
 
@@ -14,7 +22,8 @@ export class CodeOracleAPI {
   }
 
   setBaseUrl(url) {
-    this.baseUrl = (url || '').replace(/\/+$/, '');
+    const raw = (url || DEFAULT_API_BASE_URL).trim();
+    this.baseUrl = raw.replace(/\/+$/, '');
   }
 
   /**
@@ -188,4 +197,4 @@ export class CodeOracleAPI {
   }
 }
 
-export const apiService = new CodeOracleAPI(import.meta.env.VITE_API_URL || '');
+export const apiService = new CodeOracleAPI(DEFAULT_API_BASE_URL);
