@@ -111,10 +111,13 @@ def generate_unit_tests(chunks: list, repo_dir: str = None) -> dict:
             res_str = call_gemini(initial_prompt, system_instruction=sys_instruction, json_mode=True, model_name="gemini-flash-latest")
             test_source = json.loads(res_str).get("test_source", "")
         except Exception as e:
-            logger.error(f"Failed initial test generation for {file_path}: {str(e)}")
+            err_msg = f"Failed initial test generation for {file_path}: {str(e)}"
+            logger.error(err_msg)
+            aggregated_logs.append(f"--- File: {test_file_name} ---\n{err_msg}\n")
             continue
 
         if not test_source.strip():
+            aggregated_logs.append(f"--- File: {test_file_name} ---\nTest generation returned empty output.\n")
             continue
 
         # Active feedback, repair, and coverage loop

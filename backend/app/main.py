@@ -211,7 +211,7 @@ async def _run_analysis(job_id: str, source_dir: Path):
         async def _run_tests():
             try:
                 result = await asyncio.wait_for(
-                    asyncio.to_thread(generate_tests, chunks),
+                    asyncio.to_thread(generate_tests, chunks, str(source_dir)),
                     timeout=STAGE_TIMEOUT_SECONDS,
                 )
                 store_tests(analysis_dict, result)
