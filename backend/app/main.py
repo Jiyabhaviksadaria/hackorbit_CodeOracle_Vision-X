@@ -3,6 +3,7 @@ CodeOracle Backend - Main FastAPI application.
 Owned by Backend Engineer.
 """
 import os
+import re
 import subprocess
 import shutil
 from pathlib import Path
@@ -83,30 +84,85 @@ async def health_check():
     }
 
 
-async def _clone_github_repo(github_url: str, target_dir: Path, timeout: int = 60) -> None:
+GITHUB_URL_REGEX = re.compile(
+    r"^https?://(www\.)?github\.com/(?P<owner>[A-Za-z0-9_.-]+)/(?P<repo>[A-Za-z0-9_.-]+?)(?:\.git)?/?$"
+)
+
+
+def validate_and_normalize_github_url(url: str) -> str:
+    """
+    Validates and normalizes a GitHub repository URL.
+    Returns standard HTTPS clone URL: https://github.com/owner/repo.git
+    Raises ValueError if invalid.
+    """
+    if not url or not isinstance(url, str):
+        raise ValueError("github_url must be a non-empty string.")
+
+    clean_url = url.strip()
+    match = GITHUB_URL_REGEX.match(clean_url)
+    if not match:
+        raise ValueError(
+            f"Invalid GitHub repository URL '{clean_url}'. "
+            "Expected format: https://github.com/owner/repository"
+        )
+
+    owner = match.group("owner")
+    repo = match.group("repo")
+    return f"https://github.com/{owner}/{repo}.git"
+
+
+async def _clone_github_repo(github_url: str, target_dir: Path, timeout: int = 120) -> None:
     """
     Clone a public GitHub repo into target_dir.
     Raises RuntimeError with a user-friendly message on failure.
     """
+    clean_url = validate_and_normalize_github_url(github_url)
+
+    # Explicitly suppress interactive terminal credential prompts in non-interactive/headless environments
+    env = os.environ.copy()
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    env["GIT_ASKPASS"] = ""
+
+    # Ensure parent directory exists and clean target_dir if already exists
+    target_dir.parent.mkdir(parents=True, exist_ok=True)
+    if target_dir.exists():
+        shutil.rmtree(target_dir, ignore_errors=True)
+
+    cmd = [
+        "git",
+        "-c", "core.askPass=",
+        "-c", "credential.helper=",
+        "clone",
+        "--depth=1",
+        "--single-branch",
+        clean_url,
+        str(target_dir),
+    ]
+
     try:
         proc = await asyncio.wait_for(
             asyncio.create_subprocess_exec(
-                "git", "clone", "--depth=1", github_url, str(target_dir),
+                *cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
+                env=env,
             ),
             timeout=timeout,
         )
         stdout, stderr = await proc.communicate()
         if proc.returncode != 0:
             err = stderr.decode(errors="replace").strip()
-            if "not found" in err.lower() or "repository" in err.lower():
+            if any(term in err.lower() for term in ["not found", "authentication failed", "could not read username", "terminal prompts disabled"]):
                 raise RuntimeError(
-                    f"Repository not accessible — check the URL and confirm it is public. ({err[:200]})"
+                    f"Repository not accessible — check that '{github_url}' is public and spelled correctly. ({err[:250]})"
                 )
             raise RuntimeError(f"git clone failed: {err[:400]}")
     except asyncio.TimeoutError:
         raise RuntimeError(f"git clone timed out after {timeout}s")
+    except Exception as e:
+        if isinstance(e, RuntimeError):
+            raise
+        raise RuntimeError(f"Failed to execute git clone: {e}")
 
 
 async def process_github_job(job_id: str, github_url: str):
@@ -211,7 +267,7 @@ async def _run_analysis(job_id: str, source_dir: Path):
         async def _run_tests():
             try:
                 result = await asyncio.wait_for(
-                    asyncio.to_thread(generate_tests, chunks),
+                    asyncio.to_thread(generate_tests, chunks, str(source_dir)),
                     timeout=STAGE_TIMEOUT_SECONDS,
                 )
                 store_tests(analysis_dict, result)
@@ -337,20 +393,17 @@ async def upload_repository(
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid JSON body")
 
-        github_url: Optional[str] = body.get("github_url")
-        if not github_url or not github_url.strip():
+        raw_url: Optional[str] = body.get("github_url")
+        if not raw_url or not str(raw_url).strip():
             raise HTTPException(status_code=400, detail="github_url is required")
 
-        github_url = github_url.strip()
-        # Basic URL sanity check
-        if not (github_url.startswith("https://") or github_url.startswith("http://")):
-            raise HTTPException(
-                status_code=400,
-                detail="github_url must start with http:// or https://"
-            )
+        try:
+            clean_github_url = validate_and_normalize_github_url(raw_url)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
         job_id = job_manager.create_job()
-        background_tasks.add_task(process_github_job, job_id, github_url)
+        background_tasks.add_task(process_github_job, job_id, clean_github_url)
         return {"job_id": job_id}
 
     # ── Multipart path: ZIP upload ────────────────────────────────────
@@ -395,7 +448,10 @@ async def get_job_status(job_id: str) -> JobStatus:
     job = job_manager.get_job(job_id)
     
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found or expired. Please start a new analysis."
+        )
     
     # Return LOCKED contract status
     return JobStatus(
@@ -416,7 +472,10 @@ async def get_job_result(job_id: str):
     job = job_manager.get_job(job_id)
 
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found or expired. Please start a new analysis."
+        )
 
     if job.status != "done":
         raise HTTPException(
@@ -436,7 +495,10 @@ async def get_job_analysis(job_id: str):
     job = job_manager.get_job(job_id)
     
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found or expired. Please start a new analysis."
+        )
     
     return {
         "job_id": job.job_id,
@@ -464,7 +526,10 @@ async def get_job_chunks(job_id: str) -> List[ParsedChunk]:
     job = job_manager.get_job(job_id)
     
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found or expired. Please start a new analysis."
+        )
     
     if job.status not in ("done", "explaining", "testing", "refactoring"):
         raise HTTPException(

@@ -4,7 +4,26 @@ import ast
 import shutil
 import tempfile
 import logging
-from tree_sitter_languages import get_parser
+try:
+    import tree_sitter_javascript as tsjs
+    from tree_sitter import Language, Parser
+    _JS_LANG = Language(tsjs.language(), "javascript")
+    def get_js_parser():
+        p = Parser()
+        p.set_language(_JS_LANG)
+        return p
+    TREE_SITTER_JS_AVAILABLE = True
+except Exception:
+    try:
+        from tree_sitter_languages import get_parser as _get_parser
+        def get_js_parser():
+            return _get_parser("javascript")
+        TREE_SITTER_JS_AVAILABLE = True
+    except Exception:
+        TREE_SITTER_JS_AVAILABLE = False
+        def get_js_parser():
+            return None
+
 from .gemini_client import call_gemini
 from .adapters.test_runner_adapter import run_tests_and_measure_coverage
 
@@ -68,8 +87,12 @@ def get_python_signatures(source: str) -> dict:
 
 # --- Tree-sitter JS Signature Extractor ---
 def get_js_signatures(source: str) -> dict:
+    if not TREE_SITTER_JS_AVAILABLE:
+        return None
     try:
-        parser = get_parser("javascript")
+        parser = get_js_parser()
+        if not parser:
+            return None
         tree = parser.parse(bytes(source, "utf8"))
     except Exception:
         return None
@@ -278,10 +301,11 @@ def generate_refactored_code(chunks: list, repo_dir: str = None) -> dict:
                 breaking_changes.append(f"SyntaxError in refactored code: {se.msg} on line {se.lineno}")
         else:
             try:
-                parser = get_parser("javascript")
-                tree = parser.parse(bytes(refactored_source, "utf8"))
-                if tree.root_node.has_error:
-                    logger.warning("Tree-sitter detected error nodes in refactored JS")
+                parser = get_js_parser()
+                if parser:
+                    tree = parser.parse(bytes(refactored_source, "utf8"))
+                    if tree.root_node.has_error:
+                        logger.warning("Tree-sitter detected error nodes in refactored JS")
             except Exception:
                 syntax_valid = False
                 risk_level = "VALIDATION FAILED"

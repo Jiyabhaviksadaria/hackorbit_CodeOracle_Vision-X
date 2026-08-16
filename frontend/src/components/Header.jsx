@@ -152,7 +152,7 @@ export function Header({ isMock, onToggleMock, baseUrl, onBaseUrlChange, onReset
                   type="text"
                   value={baseUrl}
                   onChange={(e) => onBaseUrlChange(e.target.value)}
-                  placeholder="http://localhost:8000 (blank = relative)"
+                  placeholder="https://hackorbit-codeoracle-vision-x.onrender.com"
                   className={`w-full rounded-[4px] px-3 py-1.5 text-xs font-mono border-2 focus:outline-none ${
                     isFun
                       ? 'bg-[#FEF3C7] border-[#212121] text-[#212121] focus:border-[#E53935]'

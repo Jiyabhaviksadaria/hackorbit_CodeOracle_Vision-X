@@ -3,14 +3,14 @@ import { Header } from './components/Header';
 import { LandingHero } from './components/LandingHero';
 import { UploadSection } from './components/UploadSection';
 import { ResultsShell } from './components/ResultsShell';
-import { apiService } from './services/api';
+import { apiService, DEFAULT_API_BASE_URL } from './services/api';
 import './App.css';
 
 export default function App() {
   const [showLanding, setShowLanding] = useState(true);
   const [isMock, setIsMock] = useState(false);
   const [themeMode, setThemeMode] = useState('tech'); // 'tech' (dark) | 'fun' (red/yellow/black bold)
-  const [baseUrl, setBaseUrl] = useState('');
+  const [baseUrl, setBaseUrl] = useState(DEFAULT_API_BASE_URL);
   const [jobId, setJobId] = useState(null);
   const [status, setStatus] = useState(null);
   const [progress, setProgress] = useState(0);
@@ -20,6 +20,8 @@ export default function App() {
 
   const mockStepRef = useRef(0);
   const pollTimerRef = useRef(null);
+  const activeJobIdRef = useRef(null);
+  const abortControllerRef = useRef(null);
 
   // Sync class on document body for theme CSS variables
   useEffect(() => {
@@ -38,14 +40,27 @@ export default function App() {
     apiService.setBaseUrl(baseUrl);
   }, [baseUrl]);
 
+  // Clean up polling timer and in-flight request on component unmount
+  useEffect(() => {
+    return () => {
+      activeJobIdRef.current = null;
+      stopPolling();
+    };
+  }, []);
+
   const stopPolling = () => {
     if (pollTimerRef.current) {
-      clearInterval(pollTimerRef.current);
+      clearTimeout(pollTimerRef.current);
       pollTimerRef.current = null;
+    }
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
   };
 
   const handleReset = () => {
+    activeJobIdRef.current = null;
     stopPolling();
     setJobId(null);
     setStatus(null);
@@ -61,10 +76,10 @@ export default function App() {
   };
 
   const handleUploadSubmit = async ({ zipFile, githubUrl }) => {
+    // Explicitly reset any previous job state & timers before starting a new analysis
+    handleReset();
+
     setIsSubmitting(true);
-    setJobError(null);
-    setResultData(null);
-    mockStepRef.current = 0;
 
     try {
       const uploadRes = await apiService.uploadCode({ zipFile, githubUrl });
@@ -82,38 +97,88 @@ export default function App() {
     }
   };
 
-  const startStatusPolling = (currentJobId) => {
+  const startStatusPolling = (targetJobId) => {
     stopPolling();
+    activeJobIdRef.current = targetJobId;
 
-    pollTimerRef.current = setInterval(async () => {
+    const pollStep = async () => {
+      // Guard 1: Verify targetJobId matches currently active job
+      if (!targetJobId || activeJobIdRef.current !== targetJobId) {
+        return;
+      }
+
+      abortControllerRef.current = new AbortController();
+      const signal = abortControllerRef.current.signal;
+
       try {
-        const statusRes = await apiService.getJobStatus(currentJobId, mockStepRef.current);
+        const statusRes = await apiService.getJobStatus(targetJobId, mockStepRef.current, signal);
         mockStepRef.current += 1;
+
+        // Guard 2: Verify targetJobId is still active after async request completes
+        if (activeJobIdRef.current !== targetJobId) {
+          return;
+        }
 
         if (statusRes.status) setStatus(statusRes.status);
         if (statusRes.progress !== undefined) setProgress(statusRes.progress);
         if (statusRes.error) setJobError(statusRes.error);
 
         if (statusRes.status === 'done') {
+          activeJobIdRef.current = null;
           stopPolling();
-          fetchJobResult(currentJobId);
+          fetchJobResult(targetJobId);
         } else if (statusRes.status === 'error') {
+          activeJobIdRef.current = null;
           stopPolling();
+        } else {
+          // Schedule next poll tick only if still active
+          pollTimerRef.current = setTimeout(pollStep, 1500);
         }
       } catch (err) {
+        if (err.isAborted || signal.aborted) {
+          return;
+        }
+
+        // Terminal error state: clear active job ref and stop polling immediately
+        activeJobIdRef.current = null;
         stopPolling();
-        setJobError(err.message || 'Error communicating with job status service.');
-        setStatus('error');
+
+        if (err.status === 404 || err.isExpired) {
+          setStatus('expired');
+          setJobError(err.message || 'Your previous analysis session has expired. Please start a new analysis.');
+          setResultData(null);
+          setProgress(0);
+        } else if (err.isNetworkError) {
+          setStatus('error');
+          setJobError('Unable to connect to the CodeOracle backend.');
+        } else {
+          setStatus('error');
+          setJobError(err.message || 'Error communicating with job status service.');
+        }
       }
-    }, 1500);
+    };
+
+    pollStep();
   };
 
   const fetchJobResult = async (completedJobId) => {
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     try {
-      const res = await apiService.getJobResult(completedJobId);
+      const res = await apiService.getJobResult(completedJobId, signal);
       setResultData(res);
     } catch (err) {
-      setJobError(err.message || 'Failed to fetch final analysis results.');
+      if (err.isAborted || signal.aborted) return;
+      if (err.status === 404 || err.isExpired) {
+        activeJobIdRef.current = null;
+        setStatus('expired');
+        setJobError(err.message || 'Your previous analysis session has expired. Please start a new analysis.');
+        setResultData(null);
+        setProgress(0);
+      } else {
+        setJobError(err.message || 'Failed to fetch final analysis results.');
+      }
     }
   };
 
